@@ -1,0 +1,110 @@
+You are an expert full‑stack AI developer. I want you to design and build a cross‑platform Freelancer Finance & Payment Manager application tailored to solve real‑world pain points freelancers face.
+
+CORE IDEA:
+Build a modern application that helps freelancers track their earnings, manage client payments, generate invoices, track expenses, and view analytics — all in one place.
+
+TARGET USERS:
+- Freelancers (developers, designers, writers, marketers)
+- Solopreneurs
+- Small agencies
+
+CORE FEATURES:
+
+1. Client Management Module
+   - Add / edit / delete clients
+   - Store contact info, payment terms, project name
+   - Mark client as "Active" or "Inactive"
+
+2. Income Tracker
+   - Add incoming payments with client / project
+   - Mark payment status: Pending, Received, Overdue
+   - Filter by month, client, currency
+
+3. Invoice Generator
+   - Auto‑generate branded PDF invoices
+   - Send via email / WhatsApp with one click
+   - Track invoice status (Sent, Viewed, Paid)
+
+4. Expense Tracker
+   - Categorize expenses: Tools, Transport, Marketing, Tax
+   - Upload receipts / images
+   - Add notes per expense
+
+5. Dashboard
+   - Monthly earnings & expenses
+   - Outstanding payments
+   - Best‑paying clients
+   - Yearly summary
+   - Pie chart & bar graphs
+
+6. Notifications
+   - Automatic reminders for pending invoices
+   - Alerts for payment received, overdue, tax reminders
+
+7. Multi‑Currency Support
+   - USD, INR, EUR, GBP, AUD
+   - Convert based on real‑time exchange API
+
+8. Tax & Reports
+   - Generate monthly / yearly tax reports
+   - Export income & expenses to Excel / PDF
+
+AI‑POWERED FEATURES:
+
+1. Smart Payment Predictor
+   - Analyze client history and predict likelihood of delayed payment
+   - Score clients based on payment behavior
+
+2. AI Insight Assistant (Chat‑based)
+   - Natural‑language queries like:
+     “Who owes me the most?”
+     “Show my top 5 clients this year.”
+     “How much tax do I need to pay this quarter?”
+
+3. Auto‑Categorization of Expenses
+   - Use AI (OCR + classification) to read receipts and auto‑tag expenses
+
+4. Smart Cash‑flow Forecast
+   - Machine‑learning forecast of future income using trends and seasonality
+
+5. AI Invoice Generator
+   - Autofill invoice fields using past data; suggest due dates and descriptions
+
+TECH STACK RECOMMENDATION:
+- Frontend: Flutter (Android, iOS, Web)
+- Backend: Firebase (Authentication, Firestore, Functions)
+- Payment APIs: Stripe, PayPal, Razorpay, Wise
+- OCR / AI: Google Vision API or Taggun
+- AI: GPT‑4 API (chat insights), TensorFlow Lite (on‑device predictions)
+
+UI REQUIREMENTS:
+- Modern minimal UI (inspired by Notion / WaveApps)
+- Dashboard homepage with cards & graphs
+- Dark‑mode support
+- Mobile‑first responsive design
+
+MONETIZATION STRATEGY:
+- Free Tier: Max 3 clients, 10 invoices / month
+- Pro Tier: ₹299 / mo or $4.99 / mo (unlimited)
+- Add‑on Sales: Premium templates, financial export tools
+- Affiliate Integrations: Partner with CAs or tax software
+
+INTERNATIONALIZATION:
+- Locale‑based currency & date formatting
+- Optional Hindi, English, and Spanish UI toggle
+
+SECURITY FEATURES:
+- Data encrypted at rest and in transit
+- Optional biometric login
+- Activity log for account actions
+
+BONUS REQUEST – WIREFRAMES:
+Generate basic wireframes for:
+- Dashboard
+- Client list page
+- Invoice creation page
+- Expense upload & view
+- AI assistant chat UI
+
+OUTPUT FORMAT:
+Return code or file structure, UI components, and clearly structured modules. Include dummy data if useful.
