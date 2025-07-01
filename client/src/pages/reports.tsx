@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Download, TrendingUp, TrendingDown, DollarSign, FileText, Calendar } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { DashboardStats, Expense, InvoiceWithClient } from "@shared/schema";
+import { downloadCSV, downloadPDF, type ReportData } from "@/lib/report-export";
+import type { DashboardStats, Expense, InvoiceWithClient, ClientWithStats, Payment } from "@shared/schema";
 
 export default function Reports() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -29,7 +30,15 @@ export default function Reports() {
     queryKey: ["/api/invoices"],
   });
 
-  const isLoading = statsLoading || expensesLoading || invoicesLoading;
+  const { data: clients = [], isLoading: clientsLoading } = useQuery<ClientWithStats[]>({
+    queryKey: ["/api/clients/with-stats"],
+  });
+
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
+    queryKey: ["/api/payments"],
+  });
+
+  const isLoading = statsLoading || expensesLoading || invoicesLoading || clientsLoading || paymentsLoading;
 
   // Calculate expense breakdown by category
   const expensesByCategory = expenses.reduce((acc, expense) => {
@@ -74,13 +83,14 @@ export default function Reports() {
 
   // Invoice status breakdown
   const invoiceStatusBreakdown = invoices.reduce((acc, invoice) => {
-    const existing = acc.find(item => item.name === invoice.status);
+    const status = invoice.status || 'Draft';
+    const existing = acc.find(item => item.name === status);
     if (existing) {
       existing.value += 1;
       existing.amount += parseFloat(invoice.amount);
     } else {
       acc.push({ 
-        name: invoice.status, 
+        name: status, 
         value: 1, 
         amount: parseFloat(invoice.amount) 
       });
@@ -91,25 +101,23 @@ export default function Reports() {
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
   const handleExportReport = (type: string) => {
-    // In a real application, this would generate and download actual reports
-    const reportData = {
-      type,
-      period: selectedPeriod,
-      totalRevenue,
-      totalExpenses,
-      netIncome,
-      estimatedTax,
-      generatedAt: new Date().toISOString(),
+    if (!stats) return;
+    
+    const reportData: ReportData = {
+      stats,
+      invoices,
+      expenses,
+      clients,
+      payments,
     };
     
-    const dataStr = JSON.stringify(reportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${type}-report-${selectedPeriod}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    
+    if (type === 'csv') {
+      downloadCSV(reportData, `financial-report-${timestamp}.csv`);
+    } else if (type === 'pdf') {
+      downloadPDF(reportData, `financial-report-${timestamp}.pdf`);
+    }
   };
 
   if (isLoading) {

@@ -82,16 +82,24 @@ export const insertClientSchema = createInsertSchema(clients).omit({
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
+}).extend({
+  issueDate: z.coerce.date(),
+  dueDate: z.coerce.date(),
+  paidDate: z.coerce.date().optional(),
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses).omit({
   id: true,
   createdAt: true,
+}).extend({
+  date: z.coerce.date(),
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+}).extend({
+  receivedDate: z.coerce.date().optional(),
 });
 
 // Types
