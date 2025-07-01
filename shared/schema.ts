@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, varchar } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -128,6 +129,57 @@ export type ClientWithStats = Client & {
 export type InvoiceWithClient = Invoice & {
   client: Client;
 };
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  clients: many(clients),
+  invoices: many(invoices),
+  expenses: many(expenses),
+  payments: many(payments),
+}));
+
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  user: one(users, {
+    fields: [clients.userId],
+    references: [users.id],
+  }),
+  invoices: many(invoices),
+  payments: many(payments),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  user: one(users, {
+    fields: [invoices.userId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [invoices.clientId],
+    references: [clients.id],
+  }),
+  payments: many(payments),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  user: one(users, {
+    fields: [expenses.userId],
+    references: [users.id],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(users, {
+    fields: [payments.userId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [payments.clientId],
+    references: [clients.id],
+  }),
+  invoice: one(invoices, {
+    fields: [payments.invoiceId],
+    references: [invoices.id],
+  }),
+}));
 
 export type DashboardStats = {
   totalEarnings: number;

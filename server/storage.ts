@@ -1,4 +1,8 @@
-import { users, clients, invoices, expenses, payments, type User, type InsertUser, type Client, type InsertClient, type Invoice, type InsertInvoice, type Expense, type InsertExpense, type Payment, type InsertPayment, type ClientWithStats, type InvoiceWithClient, type DashboardStats } from "@shared/schema";
+import type { 
+  User, InsertUser, Client, InsertClient, Invoice, InsertInvoice, 
+  Expense, InsertExpense, Payment, InsertPayment, ClientWithStats, 
+  InvoiceWithClient, DashboardStats 
+} from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -38,286 +42,343 @@ export interface IStorage {
   getDashboardStats(userId: number): Promise<DashboardStats>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private clients: Map<number, Client> = new Map();
-  private invoices: Map<number, Invoice> = new Map();
-  private expenses: Map<number, Expense> = new Map();
-  private payments: Map<number, Payment> = new Map();
-  private currentUserId = 1;
-  private currentClientId = 1;
-  private currentInvoiceId = 1;
-  private currentExpenseId = 1;
-  private currentPaymentId = 1;
+// Database imports
+import { users, clients, invoices, expenses, payments } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, sql, count } from "drizzle-orm";
 
-  constructor() {
-    // Create a default user
-    const defaultUser: User = {
-      id: 1,
-      username: "alex",
-      password: "password123",
-      name: "Alex Johnson",
-      email: "alex@freelanceflow.app",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=100&h=100",
-      createdAt: new Date(),
-    };
-    this.users.set(1, defaultUser);
-    this.currentUserId = 2;
-  }
-
-  // User methods
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = {
-      ...insertUser,
-      id,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        avatar: insertUser.avatar || null,
+        createdAt: new Date(),
+      })
+      .returning();
     return user;
   }
 
-  // Client methods
   async getClients(userId: number): Promise<Client[]> {
-    return Array.from(this.clients.values()).filter(client => client.userId === userId);
+    return await db.select().from(clients).where(eq(clients.userId, userId));
   }
 
   async getClient(id: number, userId: number): Promise<Client | undefined> {
-    const client = this.clients.get(id);
-    return client?.userId === userId ? client : undefined;
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, id), eq(clients.userId, userId)));
+    return client || undefined;
   }
 
   async createClient(insertClient: InsertClient): Promise<Client> {
-    const id = this.currentClientId++;
-    const client: Client = {
-      ...insertClient,
-      id,
-      createdAt: new Date(),
-    };
-    this.clients.set(id, client);
+    const [client] = await db
+      .insert(clients)
+      .values({
+        ...insertClient,
+        contactPerson: insertClient.contactPerson || null,
+        email: insertClient.email || null,
+        phone: insertClient.phone || null,
+        address: insertClient.address || null,
+        paymentTerms: insertClient.paymentTerms || null,
+        status: insertClient.status || null,
+        createdAt: new Date(),
+      })
+      .returning();
     return client;
   }
 
   async updateClient(id: number, updateData: Partial<InsertClient>, userId: number): Promise<Client | undefined> {
-    const client = this.clients.get(id);
-    if (!client || client.userId !== userId) return undefined;
-    
-    const updatedClient = { ...client, ...updateData };
-    this.clients.set(id, updatedClient);
-    return updatedClient;
+    const [client] = await db
+      .update(clients)
+      .set(updateData)
+      .where(and(eq(clients.id, id), eq(clients.userId, userId)))
+      .returning();
+    return client || undefined;
   }
 
   async deleteClient(id: number, userId: number): Promise<boolean> {
-    const client = this.clients.get(id);
-    if (!client || client.userId !== userId) return false;
-    
-    return this.clients.delete(id);
+    const result = await db
+      .delete(clients)
+      .where(and(eq(clients.id, id), eq(clients.userId, userId)))
+      .returning();
+    return result.length > 0;
   }
 
   async getClientsWithStats(userId: number): Promise<ClientWithStats[]> {
-    const userClients = await this.getClients(userId);
-    const userInvoices = await this.getInvoices(userId);
-    
-    return userClients.map(client => {
-      const clientInvoices = userInvoices.filter(invoice => invoice.clientId === client.id);
-      const totalRevenue = clientInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
-      const projectCount = clientInvoices.length;
-      const lastInvoiceDate = clientInvoices.length > 0 
-        ? Math.max(...clientInvoices.map(invoice => new Date(invoice.issueDate).getTime()))
-        : undefined;
-      
-      return {
-        ...client,
-        totalRevenue,
-        projectCount,
-        lastInvoiceDate: lastInvoiceDate ? new Date(lastInvoiceDate).toISOString() : undefined,
-      };
-    });
+    const clientsWithStats = await db
+      .select({
+        id: clients.id,
+        userId: clients.userId,
+        companyName: clients.companyName,
+        contactPerson: clients.contactPerson,
+        email: clients.email,
+        phone: clients.phone,
+        address: clients.address,
+        paymentTerms: clients.paymentTerms,
+        status: clients.status,
+        createdAt: clients.createdAt,
+        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'Paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        projectCount: count(invoices.id),
+      })
+      .from(clients)
+      .leftJoin(invoices, eq(clients.id, invoices.clientId))
+      .where(eq(clients.userId, userId))
+      .groupBy(clients.id);
+
+    return clientsWithStats.map(client => ({
+      ...client,
+      totalRevenue: Number(client.totalRevenue),
+      projectCount: Number(client.projectCount),
+    }));
   }
 
-  // Invoice methods
   async getInvoices(userId: number): Promise<InvoiceWithClient[]> {
-    const userInvoices = Array.from(this.invoices.values()).filter(invoice => invoice.userId === userId);
-    const userClients = await this.getClients(userId);
-    
-    return userInvoices.map(invoice => {
-      const client = userClients.find(c => c.id === invoice.clientId)!;
-      return { ...invoice, client };
-    });
+    return await db
+      .select({
+        id: invoices.id,
+        userId: invoices.userId,
+        clientId: invoices.clientId,
+        invoiceNumber: invoices.invoiceNumber,
+        title: invoices.title,
+        description: invoices.description,
+        amount: invoices.amount,
+        currency: invoices.currency,
+        status: invoices.status,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        paidDate: invoices.paidDate,
+        items: invoices.items,
+        createdAt: invoices.createdAt,
+        client: {
+          id: clients.id,
+          userId: clients.userId,
+          companyName: clients.companyName,
+          contactPerson: clients.contactPerson,
+          email: clients.email,
+          phone: clients.phone,
+          address: clients.address,
+          paymentTerms: clients.paymentTerms,
+          status: clients.status,
+          createdAt: clients.createdAt,
+        },
+      })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(eq(invoices.userId, userId))
+      .orderBy(desc(invoices.createdAt));
   }
 
   async getInvoice(id: number, userId: number): Promise<InvoiceWithClient | undefined> {
-    const invoice = this.invoices.get(id);
-    if (!invoice || invoice.userId !== userId) return undefined;
-    
-    const client = this.clients.get(invoice.clientId);
-    if (!client) return undefined;
-    
-    return { ...invoice, client };
+    const [invoice] = await db
+      .select({
+        id: invoices.id,
+        userId: invoices.userId,
+        clientId: invoices.clientId,
+        invoiceNumber: invoices.invoiceNumber,
+        title: invoices.title,
+        description: invoices.description,
+        amount: invoices.amount,
+        currency: invoices.currency,
+        status: invoices.status,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        paidDate: invoices.paidDate,
+        items: invoices.items,
+        createdAt: invoices.createdAt,
+        client: {
+          id: clients.id,
+          userId: clients.userId,
+          companyName: clients.companyName,
+          contactPerson: clients.contactPerson,
+          email: clients.email,
+          phone: clients.phone,
+          address: clients.address,
+          paymentTerms: clients.paymentTerms,
+          status: clients.status,
+          createdAt: clients.createdAt,
+        },
+      })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)));
+    return invoice || undefined;
   }
 
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
-    const id = this.currentInvoiceId++;
-    const invoice: Invoice = {
-      ...insertInvoice,
-      id,
-      createdAt: new Date(),
-    };
-    this.invoices.set(id, invoice);
+    const [invoice] = await db
+      .insert(invoices)
+      .values({
+        ...insertInvoice,
+        description: insertInvoice.description || null,
+        currency: insertInvoice.currency || null,
+        status: insertInvoice.status || null,
+        paidDate: insertInvoice.paidDate || null,
+        items: insertInvoice.items || null,
+        createdAt: new Date(),
+      })
+      .returning();
     return invoice;
   }
 
   async updateInvoice(id: number, updateData: Partial<InsertInvoice>, userId: number): Promise<Invoice | undefined> {
-    const invoice = this.invoices.get(id);
-    if (!invoice || invoice.userId !== userId) return undefined;
-    
-    const updatedInvoice = { ...invoice, ...updateData };
-    this.invoices.set(id, updatedInvoice);
-    return updatedInvoice;
+    const [invoice] = await db
+      .update(invoices)
+      .set(updateData)
+      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
+      .returning();
+    return invoice || undefined;
   }
 
   async deleteInvoice(id: number, userId: number): Promise<boolean> {
-    const invoice = this.invoices.get(id);
-    if (!invoice || invoice.userId !== userId) return false;
-    
-    return this.invoices.delete(id);
+    const result = await db
+      .delete(invoices)
+      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
+      .returning();
+    return result.length > 0;
   }
 
-  // Expense methods
   async getExpenses(userId: number): Promise<Expense[]> {
-    return Array.from(this.expenses.values()).filter(expense => expense.userId === userId);
+    return await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId))
+      .orderBy(desc(expenses.date));
   }
 
   async getExpense(id: number, userId: number): Promise<Expense | undefined> {
-    const expense = this.expenses.get(id);
-    return expense?.userId === userId ? expense : undefined;
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)));
+    return expense || undefined;
   }
 
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
-    const id = this.currentExpenseId++;
-    const expense: Expense = {
-      ...insertExpense,
-      id,
-      createdAt: new Date(),
-    };
-    this.expenses.set(id, expense);
+    const [expense] = await db
+      .insert(expenses)
+      .values({
+        ...insertExpense,
+        currency: insertExpense.currency || null,
+        receipt: insertExpense.receipt || null,
+        notes: insertExpense.notes || null,
+        createdAt: new Date(),
+      })
+      .returning();
     return expense;
   }
 
   async updateExpense(id: number, updateData: Partial<InsertExpense>, userId: number): Promise<Expense | undefined> {
-    const expense = this.expenses.get(id);
-    if (!expense || expense.userId !== userId) return undefined;
-    
-    const updatedExpense = { ...expense, ...updateData };
-    this.expenses.set(id, updatedExpense);
-    return updatedExpense;
+    const [expense] = await db
+      .update(expenses)
+      .set(updateData)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+      .returning();
+    return expense || undefined;
   }
 
   async deleteExpense(id: number, userId: number): Promise<boolean> {
-    const expense = this.expenses.get(id);
-    if (!expense || expense.userId !== userId) return false;
-    
-    return this.expenses.delete(id);
+    const result = await db
+      .delete(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+      .returning();
+    return result.length > 0;
   }
 
-  // Payment methods
   async getPayments(userId: number): Promise<Payment[]> {
-    return Array.from(this.payments.values()).filter(payment => payment.userId === userId);
+    return await db
+      .select()
+      .from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
   }
 
   async getPayment(id: number, userId: number): Promise<Payment | undefined> {
-    const payment = this.payments.get(id);
-    return payment?.userId === userId ? payment : undefined;
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.id, id), eq(payments.userId, userId)));
+    return payment || undefined;
   }
 
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
-    const id = this.currentPaymentId++;
-    const payment: Payment = {
-      ...insertPayment,
-      id,
-      createdAt: new Date(),
-    };
-    this.payments.set(id, payment);
+    const [payment] = await db
+      .insert(payments)
+      .values({
+        ...insertPayment,
+        method: insertPayment.method || null,
+        status: insertPayment.status || null,
+        currency: insertPayment.currency || null,
+        receivedDate: insertPayment.receivedDate || null,
+        createdAt: new Date(),
+      })
+      .returning();
     return payment;
   }
 
   async updatePayment(id: number, updateData: Partial<InsertPayment>, userId: number): Promise<Payment | undefined> {
-    const payment = this.payments.get(id);
-    if (!payment || payment.userId !== userId) return undefined;
-    
-    const updatedPayment = { ...payment, ...updateData };
-    this.payments.set(id, updatedPayment);
-    return updatedPayment;
+    const [payment] = await db
+      .update(payments)
+      .set(updateData)
+      .where(and(eq(payments.id, id), eq(payments.userId, userId)))
+      .returning();
+    return payment || undefined;
   }
 
-  // Dashboard methods
   async getDashboardStats(userId: number): Promise<DashboardStats> {
-    const userInvoices = Array.from(this.invoices.values()).filter(invoice => invoice.userId === userId);
-    const userExpenses = await this.getExpenses(userId);
-    const userClients = await this.getClients(userId);
+    const [stats] = await db
+      .select({
+        totalEarnings: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'Paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        pendingPayments: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} IN ('Sent', 'Overdue') THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        monthlyExpenses: sql<number>`COALESCE(SUM(CASE WHEN ${expenses.date} >= date_trunc('month', CURRENT_DATE) THEN ${expenses.amount}::numeric ELSE 0 END), 0)`,
+        activeClients: sql<number>`COUNT(DISTINCT ${clients.id})`,
+      })
+      .from(users)
+      .leftJoin(invoices, eq(users.id, invoices.userId))
+      .leftJoin(expenses, eq(users.id, expenses.userId))
+      .leftJoin(clients, eq(users.id, clients.userId))
+      .where(eq(users.id, userId));
+
+    // Get monthly revenue data for the chart
+    const monthlyRevenue = await db
+      .select({
+        month: sql<string>`to_char(${invoices.issueDate}, 'YYYY-MM')`,
+        revenue: sql<number>`SUM(${invoices.amount}::numeric)`,
+      })
+      .from(invoices)
+      .where(and(
+        eq(invoices.userId, userId),
+        sql`${invoices.issueDate} >= date_trunc('month', CURRENT_DATE) - interval '11 months'`
+      ))
+      .groupBy(sql`to_char(${invoices.issueDate}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${invoices.issueDate}, 'YYYY-MM')`);
+
+    // Get top clients
     const topClients = await this.getClientsWithStats(userId);
 
-    // Calculate total earnings (paid invoices)
-    const totalEarnings = userInvoices
-      .filter(invoice => invoice.status === 'Paid')
-      .reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
-
-    // Calculate pending payments
-    const pendingPayments = userInvoices
-      .filter(invoice => invoice.status === 'Sent' || invoice.status === 'Overdue')
-      .reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
-
-    // Calculate monthly expenses (current month)
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const monthlyExpenses = userExpenses
-      .filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-      })
-      .reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
-
-    // Active clients
-    const activeClients = userClients.filter(client => client.status === 'Active').length;
-
-    // Monthly revenue for chart (last 6 months)
-    const monthlyRevenue = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const month = date.toLocaleString('default', { month: 'short' });
-      const monthNum = date.getMonth();
-      const year = date.getFullYear();
-      
-      const monthRevenue = userInvoices
-        .filter(invoice => {
-          const invoiceDate = new Date(invoice.issueDate);
-          return invoiceDate.getMonth() === monthNum && 
-                 invoiceDate.getFullYear() === year && 
-                 invoice.status === 'Paid';
-        })
-        .reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
-      
-      monthlyRevenue.push({ month, revenue: monthRevenue });
-    }
-
     return {
-      totalEarnings,
-      pendingPayments,
-      monthlyExpenses,
-      activeClients,
-      monthlyRevenue,
-      topClients: topClients.sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5),
+      totalEarnings: Number(stats?.totalEarnings || 0),
+      pendingPayments: Number(stats?.pendingPayments || 0),
+      monthlyExpenses: Number(stats?.monthlyExpenses || 0),
+      activeClients: Number(stats?.activeClients || 0),
+      monthlyRevenue: monthlyRevenue.map(item => ({
+        month: item.month,
+        revenue: Number(item.revenue),
+      })),
+      topClients: topClients.slice(0, 5),
     };
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

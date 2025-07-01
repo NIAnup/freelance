@@ -21,7 +21,7 @@ FreelanceFlow is a comprehensive full-stack web application designed to help fre
 - **Framework**: Express.js for REST API
 - **Database**: PostgreSQL with Drizzle ORM
 - **Database Driver**: Neon Database serverless driver
-- **Development**: In-memory storage fallback for development
+- **Storage**: DatabaseStorage class with full PostgreSQL integration
 - **PDF Generation**: Custom PDF generation service for invoices
 
 ### Project Structure
@@ -107,9 +107,11 @@ FreelanceFlow is a comprehensive full-stack web application designed to help fre
 - Static file serving integrated with Express
 
 ### Database Setup
-- Drizzle migrations: `npm run db:push`
-- Schema location: `shared/schema.ts`
-- PostgreSQL required for production
+- **Database**: PostgreSQL with persistent storage
+- **Migrations**: `npm run db:push`
+- **Schema**: `shared/schema.ts` with full relations
+- **Initial User**: Demo user (demo/demo123) created automatically
+- **Connection**: Managed via DATABASE_URL environment variable
 
 ### Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string
@@ -119,7 +121,12 @@ FreelanceFlow is a comprehensive full-stack web application designed to help fre
 
 ```
 Changelog:
-- July 01, 2025. Initial setup
+- July 01, 2025. Initial setup with in-memory storage
+- July 01, 2025. Added PostgreSQL database integration with full persistence
+  - Created DatabaseStorage class replacing MemStorage
+  - Added database schema with proper relations between all entities
+  - Set up demo user and sample data for testing
+  - All financial data now persists between sessions
 ```
 
 ## User Preferences
