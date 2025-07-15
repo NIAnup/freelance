@@ -127,6 +127,15 @@ Changelog:
   - Added database schema with proper relations between all entities
   - Set up demo user and sample data for testing
   - All financial data now persists between sessions
+- July 15, 2025. Migrated from Replit Agent to standard Replit environment
+  - Fixed date validation issues in forms (Expected date, received string)
+  - Implemented AI Finance Assistant with Perplexity API integration
+  - Fixed payment rate calculation (NaN% issue)
+  - Improved AI chat UI with proper scrolling and overflow handling
+  - Enhanced PDF report generation with user logo and improved styling
+  - Created landing page with authentication, pricing, and feature sections
+  - Implemented proper authentication flow with landing/dashboard routing
+  - Added comprehensive error handling for unauthorized access
 ```
 
 ## User Preferences

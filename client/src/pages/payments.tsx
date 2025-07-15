@@ -215,7 +215,7 @@ export default function Payments() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Payment Rate</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {payments.length > 0 ? Math.round((totalReceived / (totalReceived + totalPending)) * 100) : 0}%
+                      {payments.length > 0 && (totalReceived + totalPending) > 0 ? Math.round((totalReceived / (totalReceived + totalPending)) * 100) : 0}%
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/50 rounded-lg flex items-center justify-center">

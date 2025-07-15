@@ -204,6 +204,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Assistant route
+  app.post('/api/ai/chat', async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!process.env.PERPLEXITY_API_KEY) {
+        return res.status(500).json({ 
+          error: 'AI Assistant not configured. Please add PERPLEXITY_API_KEY to environment variables.' 
+        });
+      }
+      
+      // Get user's financial data for context
+      const [stats, invoices, expenses, clients] = await Promise.all([
+        storage.getDashboardStats(currentUserId),
+        storage.getInvoices(currentUserId),
+        storage.getExpenses(currentUserId),
+        storage.getClientsWithStats(currentUserId)
+      ]);
+      
+      const systemPrompt = `You are a helpful AI finance assistant for a freelancer. You have access to their financial data:
+      
+      Financial Summary:
+      - Total Earnings: $${stats.totalEarnings}
+      - Pending Payments: $${stats.pendingPayments}
+      - Monthly Expenses: $${stats.monthlyExpenses}
+      - Active Clients: ${stats.activeClients}
+      
+      Top Clients: ${clients.slice(0, 3).map(c => `${c.companyName} ($${c.totalRevenue})`).join(', ')}
+      
+      Recent Invoices: ${invoices.slice(0, 5).map(i => `${i.invoiceNumber} - ${i.client.companyName}: $${i.amount} (${i.status})`).join(', ')}
+      
+      Recent Expenses: ${expenses.slice(0, 5).map(e => `${e.description}: $${e.amount} (${e.category})`).join(', ')}
+      
+      Answer questions about their business finances, provide insights, and give actionable advice. Be concise and helpful.`;
+      
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-sonar-small-128k-online',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          max_tokens: 500,
+          temperature: 0.2,
+          stream: false
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Perplexity API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || 'Sorry, I could not process your request.';
+      
+      res.json({ response: aiResponse });
+    } catch (error) {
+      console.error('AI chat error:', error);
+      res.status(500).json({ error: 'Failed to get AI response. Please make sure the Perplexity API key is configured.' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

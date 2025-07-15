@@ -97,7 +97,8 @@ export function generatePDFContent(data: ReportData): string {
       </head>
       <body>
         <div class="header">
-          <h1>FreelanceFlow Financial Report</h1>
+          <div class="logo">💰 FreelanceFlow</div>
+          <h1>Financial Report</h1>
           <p>Generated on ${new Date().toLocaleDateString()}</p>
         </div>
         

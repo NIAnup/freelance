@@ -49,7 +49,30 @@ export default function AIChat({ open, onOpenChange }: AIChatProps) {
     queryKey: ["/api/clients/with-stats"],
   });
 
-  const generateAIResponse = (userMessage: string): string => {
+  const generateAIResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get AI response');
+      }
+      
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('AI chat error:', error);
+      return `I'm sorry, I encountered an error: ${error.message}. Please ensure the AI service is properly configured.`;
+    }
+  };
+
+  const generateFallbackResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
     
     // Top clients query
@@ -148,18 +171,29 @@ export default function AIChat({ open, onOpenChange }: AIChatProps) {
     setInputMessage("");
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    setTimeout(() => {
+    // Get AI response
+    try {
+      const aiContent = await generateAIResponse(inputMessage);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: generateAIResponse(inputMessage),
+        content: aiContent,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: generateFallbackResponse(inputMessage),
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -211,8 +245,8 @@ export default function AIChat({ open, onOpenChange }: AIChatProps) {
           )}
 
           {/* Messages */}
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 pr-4 min-h-0">
+            <div className="space-y-4 pb-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
