@@ -27,7 +27,7 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
@@ -38,7 +38,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -101,6 +101,26 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    // For development, bypass Replit auth and create a demo user session
+    if (process.env.NODE_ENV === 'development') {
+      req.login({
+        claims: {
+          sub: '1',
+          email: 'demo@freelanceflow.com',
+          first_name: 'Demo',
+          last_name: 'User',
+          profile_image_url: null
+        },
+        access_token: 'demo-token',
+        refresh_token: 'demo-refresh',
+        expires_at: Math.floor(Date.now() / 1000) + 3600
+      }, (err) => {
+        if (err) return next(err);
+        res.redirect('/');
+      });
+      return;
+    }
+    
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
