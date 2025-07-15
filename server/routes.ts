@@ -21,30 +21,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const currentUserId = 1; // For demo purposes, using fixed user ID
-
   // Client routes
-  app.get("/api/clients", async (req, res) => {
+  app.get("/api/clients", isAuthenticated, async (req: any, res) => {
     try {
-      const clients = await storage.getClients(currentUserId);
+      const userId = req.user.claims.sub;
+      const clients = await storage.getClients(userId);
       res.json(clients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch clients" });
     }
   });
 
-  app.get("/api/clients/with-stats", async (req, res) => {
+  app.get("/api/clients/with-stats", isAuthenticated, async (req: any, res) => {
     try {
-      const clients = await storage.getClientsWithStats(currentUserId);
+      const userId = req.user.claims.sub;
+      const clients = await storage.getClientsWithStats(userId);
       res.json(clients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch client stats" });
     }
   });
 
-  app.post("/api/clients", async (req, res) => {
+  app.post("/api/clients", isAuthenticated, async (req: any, res) => {
     try {
-      const clientData = insertClientSchema.parse({ ...req.body, userId: currentUserId });
+      const userId = req.user.claims.sub;
+      const clientData = insertClientSchema.parse({ ...req.body, userId });
       const client = await storage.createClient(clientData);
       res.status(201).json(client);
     } catch (error) {

@@ -8,39 +8,37 @@ export interface IStorage {
   // User methods - Replit Auth compatible
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
 
   // Client methods
-  getClients(userId: number): Promise<Client[]>;
-  getClient(id: number, userId: number): Promise<Client | undefined>;
+  getClients(userId: string): Promise<Client[]>;
+  getClient(id: number, userId: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
-  updateClient(id: number, client: Partial<InsertClient>, userId: number): Promise<Client | undefined>;
-  deleteClient(id: number, userId: number): Promise<boolean>;
-  getClientsWithStats(userId: number): Promise<ClientWithStats[]>;
+  updateClient(id: number, client: Partial<InsertClient>, userId: string): Promise<Client | undefined>;
+  deleteClient(id: number, userId: string): Promise<boolean>;
+  getClientsWithStats(userId: string): Promise<ClientWithStats[]>;
 
   // Invoice methods
-  getInvoices(userId: number): Promise<InvoiceWithClient[]>;
-  getInvoice(id: number, userId: number): Promise<InvoiceWithClient | undefined>;
+  getInvoices(userId: string): Promise<InvoiceWithClient[]>;
+  getInvoice(id: number, userId: string): Promise<InvoiceWithClient | undefined>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
-  updateInvoice(id: number, invoice: Partial<InsertInvoice>, userId: number): Promise<Invoice | undefined>;
-  deleteInvoice(id: number, userId: number): Promise<boolean>;
+  updateInvoice(id: number, invoice: Partial<InsertInvoice>, userId: string): Promise<Invoice | undefined>;
+  deleteInvoice(id: number, userId: string): Promise<boolean>;
 
   // Expense methods
-  getExpenses(userId: number): Promise<Expense[]>;
-  getExpense(id: number, userId: number): Promise<Expense | undefined>;
+  getExpenses(userId: string): Promise<Expense[]>;
+  getExpense(id: number, userId: string): Promise<Expense | undefined>;
   createExpense(expense: InsertExpense): Promise<Expense>;
-  updateExpense(id: number, expense: Partial<InsertExpense>, userId: number): Promise<Expense | undefined>;
-  deleteExpense(id: number, userId: number): Promise<boolean>;
+  updateExpense(id: number, expense: Partial<InsertExpense>, userId: string): Promise<Expense | undefined>;
+  deleteExpense(id: number, userId: string): Promise<boolean>;
 
   // Payment methods
-  getPayments(userId: number): Promise<Payment[]>;
-  getPayment(id: number, userId: number): Promise<Payment | undefined>;
+  getPayments(userId: string): Promise<Payment[]>;
+  getPayment(id: number, userId: string): Promise<Payment | undefined>;
   createPayment(payment: InsertPayment): Promise<Payment>;
-  updatePayment(id: number, payment: Partial<InsertPayment>, userId: number): Promise<Payment | undefined>;
+  updatePayment(id: number, payment: Partial<InsertPayment>, userId: string): Promise<Payment | undefined>;
 
   // Dashboard methods
-  getDashboardStats(userId: number): Promise<DashboardStats>;
+  getDashboardStats(userId: string): Promise<DashboardStats>;
 }
 
 // Database imports
@@ -70,28 +68,13 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...insertUser,
-        avatar: insertUser.avatar || null,
-        createdAt: new Date(),
-      })
-      .returning();
-    return user;
-  }
 
-  async getClients(userId: number): Promise<Client[]> {
+  async getClients(userId: string): Promise<Client[]> {
     return await db.select().from(clients).where(eq(clients.userId, userId));
   }
 
-  async getClient(id: number, userId: number): Promise<Client | undefined> {
+  async getClient(id: number, userId: string): Promise<Client | undefined> {
     const [client] = await db
       .select()
       .from(clients)
@@ -116,7 +99,7 @@ export class DatabaseStorage implements IStorage {
     return client;
   }
 
-  async updateClient(id: number, updateData: Partial<InsertClient>, userId: number): Promise<Client | undefined> {
+  async updateClient(id: number, updateData: Partial<InsertClient>, userId: string): Promise<Client | undefined> {
     const [client] = await db
       .update(clients)
       .set(updateData)
@@ -125,7 +108,7 @@ export class DatabaseStorage implements IStorage {
     return client || undefined;
   }
 
-  async deleteClient(id: number, userId: number): Promise<boolean> {
+  async deleteClient(id: number, userId: string): Promise<boolean> {
     const result = await db
       .delete(clients)
       .where(and(eq(clients.id, id), eq(clients.userId, userId)))
@@ -133,12 +116,12 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getClientsWithStats(userId: number): Promise<ClientWithStats[]> {
+  async getClientsWithStats(userId: string): Promise<ClientWithStats[]> {
     const clientsWithStats = await db
       .select({
         id: clients.id,
         userId: clients.userId,
-        companyName: clients.companyName,
+        name: clients.name,
         contactPerson: clients.contactPerson,
         email: clients.email,
         phone: clients.phone,
@@ -146,7 +129,8 @@ export class DatabaseStorage implements IStorage {
         paymentTerms: clients.paymentTerms,
         status: clients.status,
         createdAt: clients.createdAt,
-        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'Paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        updatedAt: clients.updatedAt,
+        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
         projectCount: count(invoices.id),
       })
       .from(clients)
@@ -161,27 +145,25 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getInvoices(userId: number): Promise<InvoiceWithClient[]> {
+  async getInvoices(userId: string): Promise<InvoiceWithClient[]> {
     return await db
       .select({
         id: invoices.id,
         userId: invoices.userId,
         clientId: invoices.clientId,
         invoiceNumber: invoices.invoiceNumber,
-        title: invoices.title,
         description: invoices.description,
         amount: invoices.amount,
         currency: invoices.currency,
         status: invoices.status,
         issueDate: invoices.issueDate,
         dueDate: invoices.dueDate,
-        paidDate: invoices.paidDate,
-        items: invoices.items,
         createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
         client: {
           id: clients.id,
           userId: clients.userId,
-          companyName: clients.companyName,
+          name: clients.name,
           contactPerson: clients.contactPerson,
           email: clients.email,
           phone: clients.phone,
@@ -189,6 +171,7 @@ export class DatabaseStorage implements IStorage {
           paymentTerms: clients.paymentTerms,
           status: clients.status,
           createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
         },
       })
       .from(invoices)

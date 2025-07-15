@@ -3,103 +3,120 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: text("sess").notNull(), // Using text instead of jsonb for compatibility
+    expire: timestamp("expire").notNull(),
+  }
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  avatar: text("avatar"),
-  createdAt: timestamp("created_at").defaultNow(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("firstName"),
+  lastName: varchar("lastName"),
+  profileImageUrl: varchar("profileImageUrl"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  companyName: text("company_name").notNull(),
-  contactPerson: text("contact_person"),
-  email: text("email"),
-  phone: text("phone"),
+  name: varchar("name").notNull(),
+  contactPerson: varchar("contactPerson"),
+  email: varchar("email"),
+  phone: varchar("phone"),
   address: text("address"),
-  paymentTerms: text("payment_terms").default("Net 30"),
-  status: text("status").default("Active"), // Active, Inactive
-  createdAt: timestamp("created_at").defaultNow(),
+  status: varchar("status").default("active"),
+  paymentTerms: varchar("paymentTerms"),
+  userId: varchar("userId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  clientId: integer("client_id").notNull(),
-  invoiceNumber: text("invoice_number").notNull().unique(),
-  title: text("title").notNull(),
-  description: text("description"),
+  invoiceNumber: varchar("invoiceNumber").notNull().unique(),
+  clientId: integer("clientId").notNull(),
+  userId: varchar("userId").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").default("USD"),
-  status: text("status").default("Draft"), // Draft, Sent, Paid, Overdue, Cancelled
-  issueDate: timestamp("issue_date").notNull(),
-  dueDate: timestamp("due_date").notNull(),
-  paidDate: timestamp("paid_date"),
-  items: text("items"), // JSON string of invoice items
-  createdAt: timestamp("created_at").defaultNow(),
+  currency: varchar("currency").default("USD"),
+  status: varchar("status").default("draft"),
+  issueDate: timestamp("issueDate", { mode: "date" }).notNull(),
+  dueDate: timestamp("dueDate", { mode: "date" }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  description: text("description").notNull(),
+  title: varchar("title").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").default("USD"),
-  category: text("category").notNull(), // Tools, Transport, Marketing, Tax, Office
-  receipt: text("receipt"), // File path or URL
-  notes: text("notes"),
-  date: timestamp("date").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  currency: varchar("currency").default("USD"),
+  category: varchar("category").notNull(),
+  description: text("description"),
+  expenseDate: timestamp("expenseDate", { mode: "date" }).notNull(),
+  receiptUrl: varchar("receiptUrl"),
+  userId: varchar("userId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  invoiceId: integer("invoice_id").notNull(),
-  clientId: integer("client_id").notNull(),
+  invoiceId: integer("invoiceId").notNull(),
+  userId: varchar("userId").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").default("USD"),
-  status: text("status").default("Pending"), // Pending, Received, Failed
-  method: text("method"), // Bank Transfer, PayPal, Stripe, etc.
-  receivedDate: timestamp("received_date"),
-  createdAt: timestamp("created_at").defaultNow(),
+  currency: varchar("currency").default("USD"),
+  paymentMethod: varchar("paymentMethod").notNull(),
+  paymentDate: timestamp("paymentDate", { mode: "date" }).notNull(),
+  receivedDate: timestamp("receivedDate", { mode: "date" }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
-// Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 }).extend({
   issueDate: z.string().transform((str) => new Date(str)),
   dueDate: z.string().transform((str) => new Date(str)),
-  paidDate: z.string().transform((str) => new Date(str)).optional(),
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 }).extend({
-  date: z.string().transform((str) => new Date(str)),
+  expenseDate: z.string().transform((str) => new Date(str)),
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 }).extend({
+  paymentDate: z.string().transform((str) => new Date(str)),
   receivedDate: z.string().transform((str) => new Date(str)).optional(),
 });
 
@@ -171,10 +188,6 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   user: one(users, {
     fields: [payments.userId],
     references: [users.id],
-  }),
-  client: one(clients, {
-    fields: [payments.clientId],
-    references: [clients.id],
   }),
   invoice: one(invoices, {
     fields: [payments.invoiceId],
