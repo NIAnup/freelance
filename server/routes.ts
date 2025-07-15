@@ -81,11 +81,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice routes
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", isAuthenticated, async (req: any, res) => {
     try {
-      const invoices = await storage.getInvoices(currentUserId);
+      const userId = req.user.claims.sub;
+      const invoices = await storage.getInvoices(userId);
       res.json(invoices);
     } catch (error) {
+      console.error("Invoice fetch error:", error);
       res.status(500).json({ error: "Failed to fetch invoices" });
     }
   });
@@ -212,11 +214,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard stats
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", isAuthenticated, async (req: any, res) => {
     try {
-      const stats = await storage.getDashboardStats(currentUserId);
+      const userId = req.user.claims.sub;
+      const stats = await storage.getDashboardStats(userId);
       res.json(stats);
     } catch (error) {
+      console.error("Dashboard stats error:", error);
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
   });

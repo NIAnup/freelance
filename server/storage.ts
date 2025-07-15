@@ -180,27 +180,26 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(invoices.createdAt));
   }
 
-  async getInvoice(id: number, userId: number): Promise<InvoiceWithClient | undefined> {
+  async getInvoice(id: number, userId: string): Promise<InvoiceWithClient | undefined> {
     const [invoice] = await db
       .select({
         id: invoices.id,
         userId: invoices.userId,
         clientId: invoices.clientId,
         invoiceNumber: invoices.invoiceNumber,
-        title: invoices.title,
+
         description: invoices.description,
         amount: invoices.amount,
         currency: invoices.currency,
         status: invoices.status,
         issueDate: invoices.issueDate,
         dueDate: invoices.dueDate,
-        paidDate: invoices.paidDate,
-        items: invoices.items,
+
         createdAt: invoices.createdAt,
         client: {
           id: clients.id,
           userId: clients.userId,
-          companyName: clients.companyName,
+          name: clients.name,
           contactPerson: clients.contactPerson,
           email: clients.email,
           phone: clients.phone,
@@ -336,12 +335,12 @@ export class DatabaseStorage implements IStorage {
     return payment || undefined;
   }
 
-  async getDashboardStats(userId: number): Promise<DashboardStats> {
+  async getDashboardStats(userId: string): Promise<DashboardStats> {
     const [stats] = await db
       .select({
-        totalEarnings: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'Paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
-        pendingPayments: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} IN ('Sent', 'Overdue') THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
-        monthlyExpenses: sql<number>`COALESCE(SUM(CASE WHEN ${expenses.date} >= date_trunc('month', CURRENT_DATE) THEN ${expenses.amount}::numeric ELSE 0 END), 0)`,
+        totalEarnings: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        pendingPayments: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} IN ('sent', 'overdue') THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
+        monthlyExpenses: sql<number>`COALESCE(SUM(CASE WHEN ${expenses.createdAt} >= date_trunc('month', CURRENT_DATE) THEN ${expenses.amount}::numeric ELSE 0 END), 0)`,
         activeClients: sql<number>`COUNT(DISTINCT ${clients.id})`,
       })
       .from(users)
