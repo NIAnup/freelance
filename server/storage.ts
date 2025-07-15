@@ -1,12 +1,13 @@
 import type { 
-  User, InsertUser, Client, InsertClient, Invoice, InsertInvoice, 
+  User, InsertUser, UpsertUser, Client, InsertClient, Invoice, InsertInvoice, 
   Expense, InsertExpense, Payment, InsertPayment, ClientWithStats, 
   InvoiceWithClient, DashboardStats 
 } from "@shared/schema";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
+  // User methods - Replit Auth compatible
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
@@ -48,9 +49,25 @@ import { db } from "./db";
 import { eq, and, desc, sql, count } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // Replit Auth compatible methods
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
