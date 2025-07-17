@@ -68,8 +68,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-
-
+  // Client methods
   async getClients(userId: string): Promise<Client[]> {
     return await db.select().from(clients).where(eq(clients.userId, userId));
   }
@@ -85,16 +84,7 @@ export class DatabaseStorage implements IStorage {
   async createClient(insertClient: InsertClient): Promise<Client> {
     const [client] = await db
       .insert(clients)
-      .values({
-        ...insertClient,
-        contactPerson: insertClient.contactPerson || null,
-        email: insertClient.email || null,
-        phone: insertClient.phone || null,
-        address: insertClient.address || null,
-        paymentTerms: insertClient.paymentTerms || null,
-        status: insertClient.status || null,
-        createdAt: new Date(),
-      })
+      .values(insertClient)
       .returning();
     return client;
   }
@@ -102,7 +92,7 @@ export class DatabaseStorage implements IStorage {
   async updateClient(id: number, updateData: Partial<InsertClient>, userId: string): Promise<Client | undefined> {
     const [client] = await db
       .update(clients)
-      .set(updateData)
+      .set({ ...updateData, updatedAt: new Date() })
       .where(and(eq(clients.id, id), eq(clients.userId, userId)))
       .returning();
     return client || undefined;
@@ -130,8 +120,8 @@ export class DatabaseStorage implements IStorage {
         status: clients.status,
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
-        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
-        projectCount: count(invoices.id),
+        totalRevenue: sql<number>`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`,
+        projectCount: sql<number>`COUNT(${invoices.id})`,
       })
       .from(clients)
       .leftJoin(invoices, eq(clients.id, invoices.clientId))
@@ -145,8 +135,9 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  // Invoice methods
   async getInvoices(userId: string): Promise<InvoiceWithClient[]> {
-    return await db
+    const invoiceList = await db
       .select({
         id: invoices.id,
         userId: invoices.userId,
@@ -178,6 +169,8 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(clients, eq(invoices.clientId, clients.id))
       .where(eq(invoices.userId, userId))
       .orderBy(desc(invoices.createdAt));
+
+    return invoiceList;
   }
 
   async getInvoice(id: number, userId: string): Promise<InvoiceWithClient | undefined> {
@@ -187,15 +180,14 @@ export class DatabaseStorage implements IStorage {
         userId: invoices.userId,
         clientId: invoices.clientId,
         invoiceNumber: invoices.invoiceNumber,
-
         description: invoices.description,
         amount: invoices.amount,
         currency: invoices.currency,
         status: invoices.status,
         issueDate: invoices.issueDate,
         dueDate: invoices.dueDate,
-
         createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
         client: {
           id: clients.id,
           userId: clients.userId,
@@ -207,6 +199,7 @@ export class DatabaseStorage implements IStorage {
           paymentTerms: clients.paymentTerms,
           status: clients.status,
           createdAt: clients.createdAt,
+          updatedAt: clients.updatedAt,
         },
       })
       .from(invoices)
@@ -218,29 +211,21 @@ export class DatabaseStorage implements IStorage {
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
     const [invoice] = await db
       .insert(invoices)
-      .values({
-        ...insertInvoice,
-        description: insertInvoice.description || null,
-        currency: insertInvoice.currency || null,
-        status: insertInvoice.status || null,
-        paidDate: insertInvoice.paidDate || null,
-        items: insertInvoice.items || null,
-        createdAt: new Date(),
-      })
+      .values(insertInvoice)
       .returning();
     return invoice;
   }
 
-  async updateInvoice(id: number, updateData: Partial<InsertInvoice>, userId: number): Promise<Invoice | undefined> {
+  async updateInvoice(id: number, updateData: Partial<InsertInvoice>, userId: string): Promise<Invoice | undefined> {
     const [invoice] = await db
       .update(invoices)
-      .set(updateData)
+      .set({ ...updateData, updatedAt: new Date() })
       .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
       .returning();
     return invoice || undefined;
   }
 
-  async deleteInvoice(id: number, userId: number): Promise<boolean> {
+  async deleteInvoice(id: number, userId: string): Promise<boolean> {
     const result = await db
       .delete(invoices)
       .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
@@ -248,15 +233,16 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getExpenses(userId: number): Promise<Expense[]> {
+  // Expense methods
+  async getExpenses(userId: string): Promise<Expense[]> {
     return await db
       .select()
       .from(expenses)
       .where(eq(expenses.userId, userId))
-      .orderBy(desc(expenses.date));
+      .orderBy(desc(expenses.expenseDate));
   }
 
-  async getExpense(id: number, userId: number): Promise<Expense | undefined> {
+  async getExpense(id: number, userId: string): Promise<Expense | undefined> {
     const [expense] = await db
       .select()
       .from(expenses)
@@ -267,27 +253,21 @@ export class DatabaseStorage implements IStorage {
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
     const [expense] = await db
       .insert(expenses)
-      .values({
-        ...insertExpense,
-        currency: insertExpense.currency || null,
-        receipt: insertExpense.receipt || null,
-        notes: insertExpense.notes || null,
-        createdAt: new Date(),
-      })
+      .values(insertExpense)
       .returning();
     return expense;
   }
 
-  async updateExpense(id: number, updateData: Partial<InsertExpense>, userId: number): Promise<Expense | undefined> {
+  async updateExpense(id: number, updateData: Partial<InsertExpense>, userId: string): Promise<Expense | undefined> {
     const [expense] = await db
       .update(expenses)
-      .set(updateData)
+      .set({ ...updateData, updatedAt: new Date() })
       .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
       .returning();
     return expense || undefined;
   }
 
-  async deleteExpense(id: number, userId: number): Promise<boolean> {
+  async deleteExpense(id: number, userId: string): Promise<boolean> {
     const result = await db
       .delete(expenses)
       .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
@@ -295,15 +275,16 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getPayments(userId: number): Promise<Payment[]> {
+  // Payment methods
+  async getPayments(userId: string): Promise<Payment[]> {
     return await db
       .select()
       .from(payments)
       .where(eq(payments.userId, userId))
-      .orderBy(desc(payments.createdAt));
+      .orderBy(desc(payments.paymentDate));
   }
 
-  async getPayment(id: number, userId: number): Promise<Payment | undefined> {
+  async getPayment(id: number, userId: string): Promise<Payment | undefined> {
     const [payment] = await db
       .select()
       .from(payments)
@@ -314,68 +295,110 @@ export class DatabaseStorage implements IStorage {
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
     const [payment] = await db
       .insert(payments)
-      .values({
-        ...insertPayment,
-        method: insertPayment.method || null,
-        status: insertPayment.status || null,
-        currency: insertPayment.currency || null,
-        receivedDate: insertPayment.receivedDate || null,
-        createdAt: new Date(),
-      })
+      .values(insertPayment)
       .returning();
     return payment;
   }
 
-  async updatePayment(id: number, updateData: Partial<InsertPayment>, userId: number): Promise<Payment | undefined> {
+  async updatePayment(id: number, updateData: Partial<InsertPayment>, userId: string): Promise<Payment | undefined> {
     const [payment] = await db
       .update(payments)
-      .set(updateData)
+      .set({ ...updateData, updatedAt: new Date() })
       .where(and(eq(payments.id, id), eq(payments.userId, userId)))
       .returning();
     return payment || undefined;
   }
 
+  // Dashboard methods
   async getDashboardStats(userId: string): Promise<DashboardStats> {
-    const [stats] = await db
+    // Get total earnings
+    const totalEarningsResult = await db
       .select({
-        totalEarnings: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
-        pendingPayments: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} IN ('sent', 'overdue') THEN ${invoices.amount}::numeric ELSE 0 END), 0)`,
-        monthlyExpenses: sql<number>`COALESCE(SUM(CASE WHEN ${expenses.createdAt} >= date_trunc('month', CURRENT_DATE) THEN ${expenses.amount}::numeric ELSE 0 END), 0)`,
-        activeClients: sql<number>`COUNT(DISTINCT ${clients.id})`,
+        total: sql<number>`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`,
       })
-      .from(users)
-      .leftJoin(invoices, eq(users.id, invoices.userId))
-      .leftJoin(expenses, eq(users.id, expenses.userId))
-      .leftJoin(clients, eq(users.id, clients.userId))
-      .where(eq(users.id, userId));
+      .from(invoices)
+      .where(and(eq(invoices.userId, userId), eq(invoices.status, "paid")));
 
-    // Get monthly revenue data for the chart
-    const monthlyRevenue = await db
+    // Get pending payments
+    const pendingPaymentsResult = await db
       .select({
-        month: sql<string>`to_char(${invoices.issueDate}, 'YYYY-MM')`,
-        revenue: sql<number>`SUM(${invoices.amount}::numeric)`,
+        total: sql<number>`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`,
+      })
+      .from(invoices)
+      .where(and(eq(invoices.userId, userId), eq(invoices.status, "sent")));
+
+    // Get monthly expenses
+    const monthlyExpensesResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(CAST(${expenses.amount} AS DECIMAL)), 0)`,
+      })
+      .from(expenses)
+      .where(and(
+        eq(expenses.userId, userId),
+        sql`${expenses.expenseDate} >= date_trunc('month', current_date)`
+      ));
+
+    // Get active clients count
+    const activeClientsResult = await db
+      .select({
+        count: count(),
+      })
+      .from(clients)
+      .where(and(eq(clients.userId, userId), eq(clients.status, "active")));
+
+    // Get monthly revenue for the last 6 months
+    const monthlyRevenueResult = await db
+      .select({
+        month: sql<string>`TO_CHAR(${invoices.issueDate}, 'YYYY-MM')`,
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`,
       })
       .from(invoices)
       .where(and(
         eq(invoices.userId, userId),
-        sql`${invoices.issueDate} >= date_trunc('month', CURRENT_DATE) - interval '11 months'`
+        eq(invoices.status, "paid"),
+        sql`${invoices.issueDate} >= current_date - interval '6 months'`
       ))
-      .groupBy(sql`to_char(${invoices.issueDate}, 'YYYY-MM')`)
-      .orderBy(sql`to_char(${invoices.issueDate}, 'YYYY-MM')`);
+      .groupBy(sql`TO_CHAR(${invoices.issueDate}, 'YYYY-MM')`)
+      .orderBy(sql`TO_CHAR(${invoices.issueDate}, 'YYYY-MM')`);
 
     // Get top clients
-    const topClients = await this.getClientsWithStats(userId);
+    const topClientsResult = await db
+      .select({
+        id: clients.id,
+        userId: clients.userId,
+        name: clients.name,
+        contactPerson: clients.contactPerson,
+        email: clients.email,
+        phone: clients.phone,
+        address: clients.address,
+        paymentTerms: clients.paymentTerms,
+        status: clients.status,
+        createdAt: clients.createdAt,
+        updatedAt: clients.updatedAt,
+        totalRevenue: sql<number>`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`,
+        projectCount: sql<number>`COUNT(${invoices.id})`,
+      })
+      .from(clients)
+      .leftJoin(invoices, eq(clients.id, invoices.clientId))
+      .where(eq(clients.userId, userId))
+      .groupBy(clients.id)
+      .orderBy(desc(sql`COALESCE(SUM(CAST(${invoices.amount} AS DECIMAL)), 0)`))
+      .limit(5);
 
     return {
-      totalEarnings: Number(stats?.totalEarnings || 0),
-      pendingPayments: Number(stats?.pendingPayments || 0),
-      monthlyExpenses: Number(stats?.monthlyExpenses || 0),
-      activeClients: Number(stats?.activeClients || 0),
-      monthlyRevenue: monthlyRevenue.map(item => ({
-        month: item.month,
-        revenue: Number(item.revenue),
+      totalEarnings: Number(totalEarningsResult[0]?.total || 0),
+      pendingPayments: Number(pendingPaymentsResult[0]?.total || 0),
+      monthlyExpenses: Number(monthlyExpensesResult[0]?.total || 0),
+      activeClients: Number(activeClientsResult[0]?.count || 0),
+      monthlyRevenue: monthlyRevenueResult.map(row => ({
+        month: row.month,
+        revenue: Number(row.revenue),
       })),
-      topClients: topClients.slice(0, 5),
+      topClients: topClientsResult.map(client => ({
+        ...client,
+        totalRevenue: Number(client.totalRevenue),
+        projectCount: Number(client.projectCount),
+      })),
     };
   }
 }
