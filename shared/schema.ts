@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -9,9 +9,10 @@ export const sessions = pgTable(
   "sessions",
   {
     sid: varchar("sid").primaryKey(),
-    sess: text("sess").notNull(), // Using text instead of jsonb for compatibility
+    sess: jsonb("sess").notNull(),
     expire: timestamp("expire").notNull(),
-  }
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
 // User storage table.
@@ -19,40 +20,40 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
-  firstName: varchar("firstName"),
-  lastName: varchar("lastName"),
-  profileImageUrl: varchar("profileImageUrl"),
-  createdAt: timestamp("createdAt").defaultNow(),
-  updatedAt: timestamp("updatedAt").defaultNow(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: varchar("name").notNull(),
-  contactPerson: varchar("contactPerson"),
+  contactPerson: varchar("contact_person"),
   email: varchar("email"),
   phone: varchar("phone"),
   address: text("address"),
   status: varchar("status").default("active"),
-  paymentTerms: varchar("paymentTerms"),
-  userId: varchar("userId").notNull(),
-  createdAt: timestamp("createdAt").defaultNow(),
-  updatedAt: timestamp("updatedAt").defaultNow(),
+  paymentTerms: varchar("payment_terms"),
+  userId: varchar("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
-  invoiceNumber: varchar("invoiceNumber").notNull().unique(),
-  clientId: integer("clientId").notNull(),
-  userId: varchar("userId").notNull(),
+  invoiceNumber: varchar("invoice_number").notNull().unique(),
+  clientId: integer("client_id").notNull(),
+  userId: varchar("user_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency").default("USD"),
   status: varchar("status").default("draft"),
-  issueDate: timestamp("issueDate", { mode: "date" }).notNull(),
-  dueDate: timestamp("dueDate", { mode: "date" }).notNull(),
+  issueDate: timestamp("issue_date", { mode: "date" }).notNull(),
+  dueDate: timestamp("due_date", { mode: "date" }).notNull(),
   description: text("description"),
-  createdAt: timestamp("createdAt").defaultNow(),
-  updatedAt: timestamp("updatedAt").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const expenses = pgTable("expenses", {
@@ -62,25 +63,25 @@ export const expenses = pgTable("expenses", {
   currency: varchar("currency").default("USD"),
   category: varchar("category").notNull(),
   description: text("description"),
-  expenseDate: timestamp("expenseDate", { mode: "date" }).notNull(),
-  receiptUrl: varchar("receiptUrl"),
-  userId: varchar("userId").notNull(),
-  createdAt: timestamp("createdAt").defaultNow(),
-  updatedAt: timestamp("updatedAt").defaultNow(),
+  expenseDate: timestamp("expense_date", { mode: "date" }).notNull(),
+  receiptUrl: varchar("receipt_url"),
+  userId: varchar("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  invoiceId: integer("invoiceId").notNull(),
-  userId: varchar("userId").notNull(),
+  invoiceId: integer("invoice_id").notNull(),
+  userId: varchar("user_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency").default("USD"),
-  paymentMethod: varchar("paymentMethod").notNull(),
-  paymentDate: timestamp("paymentDate", { mode: "date" }).notNull(),
-  receivedDate: timestamp("receivedDate", { mode: "date" }),
+  paymentMethod: varchar("payment_method").notNull(),
+  paymentDate: timestamp("payment_date", { mode: "date" }).notNull(),
+  receivedDate: timestamp("received_date", { mode: "date" }),
   notes: text("notes"),
-  createdAt: timestamp("createdAt").defaultNow(),
-  updatedAt: timestamp("updatedAt").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
