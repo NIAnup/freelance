@@ -36,9 +36,8 @@ interface NavigationProps {
 export function Navigation({ children }: NavigationProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const signoutMutation = useMutation({
     mutationFn: async () => {
@@ -50,7 +49,7 @@ export function Navigation({ children }: NavigationProps) {
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
-      queryClient.clear();
+      signOut(); // Use the signOut function from useAuth
       window.location.href = "/";
     },
   });
@@ -131,7 +130,7 @@ export function Navigation({ children }: NavigationProps) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatar} />
                       <AvatarFallback>
-                        {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                        {user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
@@ -191,7 +190,7 @@ export function Navigation({ children }: NavigationProps) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatar} />
                       <AvatarFallback>
-                        {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                        {user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

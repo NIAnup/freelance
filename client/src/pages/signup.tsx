@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { signupSchema } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -19,6 +19,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function SignupPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
 
   const form = useForm<SignupFormData>({
@@ -42,7 +43,12 @@ export default function SignupPage() {
         title: "Account created successfully!",
         description: "Welcome to FreelanceFlow. You're now signed in.",
       });
-      setLocation("/dashboard");
+      // Invalidate auth queries to refresh user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Small delay to ensure state updates, then redirect
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 100);
     },
     onError: (error: any) => {
       setError(error.message || "Sign up failed");

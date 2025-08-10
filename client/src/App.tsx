@@ -38,28 +38,14 @@ function Router() {
       <Route path="/signin" component={SigninPage} />
       <Route path="/signup" component={SignupPage} />
       
-      {/* Protected routes */}
-      {isAuthenticated ? (
-        <>
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/clients" component={Clients} />
-          <Route path="/invoices" component={Invoices} />
-          <Route path="/expenses" component={Expenses} />
-          <Route path="/payments" component={Payments} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/profile" component={ProfilePage} />
-        </>
-      ) : (
-        <>
-          <Route path="/dashboard" component={SigninPage} />
-          <Route path="/clients" component={SigninPage} />
-          <Route path="/invoices" component={SigninPage} />
-          <Route path="/expenses" component={SigninPage} />
-          <Route path="/payments" component={SigninPage} />
-          <Route path="/reports" component={SigninPage} />
-          <Route path="/profile" component={SigninPage} />
-        </>
-      )}
+      {/* Protected routes - Always define all routes */}
+      <Route path="/dashboard" component={isAuthenticated ? Dashboard : SigninPage} />
+      <Route path="/clients" component={isAuthenticated ? Clients : SigninPage} />
+      <Route path="/invoices" component={isAuthenticated ? Invoices : SigninPage} />
+      <Route path="/expenses" component={isAuthenticated ? Expenses : SigninPage} />
+      <Route path="/payments" component={isAuthenticated ? Payments : SigninPage} />
+      <Route path="/reports" component={isAuthenticated ? Reports : SigninPage} />
+      <Route path="/profile" component={isAuthenticated ? ProfilePage : SigninPage} />
       
       <Route component={NotFound} />
     </Switch>
