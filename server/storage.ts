@@ -8,7 +8,9 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
 
   // Client methods
   getClients(userId: number): Promise<Client[]>;
@@ -58,6 +60,11 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -68,6 +75,15 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   async getClients(userId: number): Promise<Client[]> {

@@ -75,6 +75,28 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const signupSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const signinSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const profileUpdateSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  avatar: z.string().optional(),
+});
+
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,

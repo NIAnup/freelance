@@ -1,11 +1,111 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClientSchema, insertInvoiceSchema, insertExpenseSchema, insertPaymentSchema } from "@shared/schema";
+import { insertClientSchema, insertInvoiceSchema, insertExpenseSchema, insertPaymentSchema, signupSchema, signinSchema, profileUpdateSchema } from "@shared/schema";
 import { generateInvoicePDF } from "./services/pdf-generator";
 
+// Session middleware for authentication
+let currentSession: { userId: number | null } = { userId: null };
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  const currentUserId = 1; // For demo purposes, using fixed user ID
+  // Authentication middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!currentSession.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    req.userId = currentSession.userId;
+    next();
+  };
+
+  // Auth routes
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const userData = signupSchema.parse(req.body);
+      
+      // Check if username or email already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      
+      const existingEmail = await storage.getUserByEmail(userData.email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
+      // Create user (in production, hash the password)
+      const user = await storage.createUser({
+        username: userData.username,
+        password: userData.password, // In production, use bcrypt.hash(userData.password, 10)
+        name: userData.name,
+        email: userData.email,
+        avatar: null,
+      });
+
+      // Auto-login after signup
+      currentSession.userId = user.id;
+      
+      res.status(201).json({ 
+        user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar },
+        message: "Account created successfully" 
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid signup data" });
+    }
+  });
+
+  app.post("/api/auth/signin", async (req, res) => {
+    try {
+      const credentials = signinSchema.parse(req.body);
+      
+      const user = await storage.getUserByUsername(credentials.username);
+      if (!user || user.password !== credentials.password) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Set session
+      currentSession.userId = user.id;
+      
+      res.json({ 
+        user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar },
+        message: "Signed in successfully" 
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid signin data" });
+    }
+  });
+
+  app.post("/api/auth/signout", (req, res) => {
+    currentSession.userId = null;
+    res.json({ message: "Signed out successfully" });
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  app.put("/api/auth/profile", requireAuth, async (req: any, res) => {
+    try {
+      const updateData = profileUpdateSchema.parse(req.body);
+      const user = await storage.updateUser(req.userId, updateData);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update profile" });
+    }
+  });
+
+  const currentUserId = 1; // Keep demo functionality, but will be replaced by req.userId
 
   // Client routes
   app.get("/api/clients", async (req, res) => {
