@@ -105,30 +105,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const currentUserId = 1; // Keep demo functionality, but will be replaced by req.userId
-
   // Client routes
-  app.get("/api/clients", async (req, res) => {
+  app.get("/api/clients", requireAuth, async (req: any, res) => {
     try {
-      const clients = await storage.getClients(currentUserId);
+      const clients = await storage.getClients(req.userId);
       res.json(clients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch clients" });
     }
   });
 
-  app.get("/api/clients/with-stats", async (req, res) => {
+  app.get("/api/clients/with-stats", requireAuth, async (req: any, res) => {
     try {
-      const clients = await storage.getClientsWithStats(currentUserId);
+      const clients = await storage.getClientsWithStats(req.userId);
       res.json(clients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch client stats" });
     }
   });
 
-  app.post("/api/clients", async (req, res) => {
+  app.post("/api/clients", requireAuth, async (req: any, res) => {
     try {
-      const clientData = insertClientSchema.parse({ ...req.body, userId: currentUserId });
+      const clientData = insertClientSchema.parse({ ...req.body, userId: req.userId });
       const client = await storage.createClient(clientData);
       res.status(201).json(client);
     } catch (error) {
@@ -136,11 +134,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/clients/:id", async (req, res) => {
+  app.put("/api/clients/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      const client = await storage.updateClient(id, updateData, currentUserId);
+      const client = await storage.updateClient(id, updateData, req.userId);
       if (!client) {
         return res.status(404).json({ error: "Client not found" });
       }
@@ -150,10 +148,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/clients/:id", async (req, res) => {
+  app.delete("/api/clients/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteClient(id, currentUserId);
+      const success = await storage.deleteClient(id, req.userId);
       if (!success) {
         return res.status(404).json({ error: "Client not found" });
       }
@@ -164,19 +162,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice routes
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requireAuth, async (req: any, res) => {
     try {
-      const invoices = await storage.getInvoices(currentUserId);
+      const invoices = await storage.getInvoices(req.userId);
       res.json(invoices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch invoices" });
     }
   });
 
-  app.get("/api/invoices/:id", async (req, res) => {
+  app.get("/api/invoices/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const invoice = await storage.getInvoice(id, currentUserId);
+      const invoice = await storage.getInvoice(id, req.userId);
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
@@ -186,9 +184,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requireAuth, async (req: any, res) => {
     try {
-      const invoiceData = insertInvoiceSchema.parse({ ...req.body, userId: currentUserId });
+      const invoiceData = insertInvoiceSchema.parse({ ...req.body, userId: req.userId });
       const invoice = await storage.createInvoice(invoiceData);
       res.status(201).json(invoice);
     } catch (error) {
@@ -196,11 +194,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/invoices/:id", async (req, res) => {
+  app.put("/api/invoices/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      const invoice = await storage.updateInvoice(id, updateData, currentUserId);
+      const invoice = await storage.updateInvoice(id, updateData, req.userId);
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
@@ -210,10 +208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/invoices/:id/pdf", async (req, res) => {
+  app.get("/api/invoices/:id/pdf", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const invoice = await storage.getInvoice(id, currentUserId);
+      const invoice = await storage.getInvoice(id, req.userId);
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
@@ -228,18 +226,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expense routes
-  app.get("/api/expenses", async (req, res) => {
+  app.get("/api/expenses", requireAuth, async (req: any, res) => {
     try {
-      const expenses = await storage.getExpenses(currentUserId);
+      const expenses = await storage.getExpenses(req.userId);
       res.json(expenses);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch expenses" });
     }
   });
 
-  app.post("/api/expenses", async (req, res) => {
+  app.post("/api/expenses", requireAuth, async (req: any, res) => {
     try {
-      const expenseData = insertExpenseSchema.parse({ ...req.body, userId: currentUserId });
+      const expenseData = insertExpenseSchema.parse({ ...req.body, userId: req.userId });
       const expense = await storage.createExpense(expenseData);
       res.status(201).json(expense);
     } catch (error) {
@@ -247,11 +245,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/expenses/:id", async (req, res) => {
+  app.put("/api/expenses/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      const expense = await storage.updateExpense(id, updateData, currentUserId);
+      const expense = await storage.updateExpense(id, updateData, req.userId);
       if (!expense) {
         return res.status(404).json({ error: "Expense not found" });
       }
@@ -261,10 +259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/expenses/:id", async (req, res) => {
+  app.delete("/api/expenses/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteExpense(id, currentUserId);
+      const success = await storage.deleteExpense(id, req.userId);
       if (!success) {
         return res.status(404).json({ error: "Expense not found" });
       }
@@ -275,18 +273,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment routes
-  app.get("/api/payments", async (req, res) => {
+  app.get("/api/payments", requireAuth, async (req: any, res) => {
     try {
-      const payments = await storage.getPayments(currentUserId);
+      const payments = await storage.getPayments(req.userId);
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payments" });
     }
   });
 
-  app.post("/api/payments", async (req, res) => {
+  app.post("/api/payments", requireAuth, async (req: any, res) => {
     try {
-      const paymentData = insertPaymentSchema.parse({ ...req.body, userId: currentUserId });
+      const paymentData = insertPaymentSchema.parse({ ...req.body, userId: req.userId });
       const payment = await storage.createPayment(paymentData);
       res.status(201).json(payment);
     } catch (error) {
@@ -295,9 +293,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard stats
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", requireAuth, async (req: any, res) => {
     try {
-      const stats = await storage.getDashboardStats(currentUserId);
+      const stats = await storage.getDashboardStats(req.userId);
       res.json(stats);
     } catch (error) {
       console.error("Dashboard stats error:", error);
