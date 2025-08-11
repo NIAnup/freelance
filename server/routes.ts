@@ -198,13 +198,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
+      
+      // Handle date fields properly
+      if (updateData.issueDate) {
+        updateData.issueDate = new Date(updateData.issueDate);
+      }
+      if (updateData.dueDate) {
+        updateData.dueDate = new Date(updateData.dueDate);
+      }
+      if (updateData.paidDate) {
+        updateData.paidDate = new Date(updateData.paidDate);
+      }
+      
       const invoice = await storage.updateInvoice(id, updateData, req.userId);
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
       res.json(invoice);
-    } catch (error) {
-      res.status(400).json({ error: "Failed to update invoice" });
+    } catch (error: any) {
+      console.error("Invoice update error:", error);
+      res.status(400).json({ error: error.message || "Failed to update invoice" });
     }
   });
 
