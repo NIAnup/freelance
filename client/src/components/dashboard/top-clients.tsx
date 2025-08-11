@@ -20,29 +20,29 @@ export default function TopClients({ clients }: TopClientsProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Top Clients</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-2 sm:pb-4">
+        <CardTitle className="text-lg sm:text-xl">Top Clients</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-0">
+        <div className="space-y-3 sm:space-y-4">
           {clients.slice(0, 5).map((client, index) => (
-            <div key={client.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10">
+            <div key={client.id} className="flex items-center justify-between py-2 hover:bg-muted/50 rounded-lg px-2 transition-colors">
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                   <AvatarFallback className={getAvatarColor(index)}>
                     {getInitials(client.companyName)}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{client.companyName}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-foreground truncate">{client.companyName}</p>
                   <p className="text-xs text-muted-foreground">
                     {client.projectCount} project{client.projectCount !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-foreground">
+              <div className="text-right flex-shrink-0">
+                <p className="text-xs sm:text-sm font-semibold text-foreground">
                   {formatCurrency(client.totalRevenue)}
                 </p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">+15%</p>
@@ -51,7 +51,7 @@ export default function TopClients({ clients }: TopClientsProps) {
           ))}
           {clients.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No clients yet</p>
+              <p className="text-muted-foreground text-sm">No clients yet</p>
             </div>
           )}
         </div>

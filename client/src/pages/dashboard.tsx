@@ -55,21 +55,25 @@ export default function Dashboard() {
 
   return (
     <Navigation>
-      <div className="p-6">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-2">Welcome back! Here's your financial overview.</p>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">Welcome back! Here's your financial overview.</p>
           </div>
 
           <StatsCards stats={stats} />
           
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
-            <RevenueChart stats={stats} />
-            <TopClients clients={stats.topClients} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
+            <div className="lg:col-span-2">
+              <RevenueChart stats={stats} />
+            </div>
+            <div className="lg:col-span-1">
+              <TopClients clients={stats.topClients} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
             <RecentInvoices invoices={recentInvoices} />
             <QuickActions
               onNewInvoice={() => setInvoiceModalOpen(true)}

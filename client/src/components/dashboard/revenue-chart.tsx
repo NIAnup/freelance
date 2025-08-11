@@ -18,18 +18,18 @@ export default function RevenueChart({ stats }: RevenueChartProps) {
   };
 
   return (
-    <Card className="xl:col-span-2">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Revenue Overview</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-2 sm:pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+          <CardTitle className="text-lg sm:text-xl">Revenue Overview</CardTitle>
           <div className="flex space-x-2">
-            <Button variant="secondary" size="sm">6M</Button>
-            <Button variant="ghost" size="sm">1Y</Button>
+            <Button variant="secondary" size="sm" className="text-xs sm:text-sm h-8">6M</Button>
+            <Button variant="ghost" size="sm" className="text-xs sm:text-sm h-8">1Y</Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="h-80">
+      <CardContent className="pt-0">
+        <div className="h-64 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={stats.monthlyRevenue}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />

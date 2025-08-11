@@ -22,7 +22,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
       title: "Pending Payments",
       value: formatCurrency(stats.pendingPayments),
       change: "5 invoices pending",
-      changeType: "neutral" as const,
+      changeType: "warning" as const,
       icon: Clock,
       bgColor: "bg-amber-100 dark:bg-amber-900/50",
       iconColor: "text-amber-600 dark:text-amber-400",
@@ -31,7 +31,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
       title: "Monthly Expenses",
       value: formatCurrency(stats.monthlyExpenses),
       change: "-8.2% from last month",
-      changeType: "positive" as const,
+      changeType: "negative" as const,
       icon: TrendingDown,
       bgColor: "bg-red-100 dark:bg-red-900/50",
       iconColor: "text-red-600 dark:text-red-400",
@@ -48,15 +48,15 @@ export default function StatsCards({ stats }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
       {cards.map((card) => (
-        <Card key={card.title}>
-          <CardContent className="p-6">
+        <Card key={card.title} className="hover:shadow-lg transition-shadow duration-200">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                <p className="text-2xl font-bold text-foreground">{card.value}</p>
-                <p className={`text-sm mt-1 flex items-center ${
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{card.title}</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{card.value}</p>
+                <p className={`text-xs sm:text-sm mt-1 flex items-center ${
                   card.changeType === 'positive' 
                     ? 'text-emerald-600 dark:text-emerald-400' 
                     : card.changeType === 'negative'
@@ -68,8 +68,8 @@ export default function StatsCards({ stats }: StatsCardsProps) {
                   {card.change}
                 </p>
               </div>
-              <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
-                <card.icon className={`w-6 h-6 ${card.iconColor}`} />
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                <card.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.iconColor}`} />
               </div>
             </div>
           </CardContent>

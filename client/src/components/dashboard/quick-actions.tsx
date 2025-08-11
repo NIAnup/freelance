@@ -46,23 +46,23 @@ export default function QuickActions({ onNewInvoice, onAddClient, onLogExpense }
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         {actions.map((action, index) => (
-          <Card key={index} className="border border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+          <Card key={index} className="border border-border hover:shadow-lg transition-shadow duration-200">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <action.icon className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-medium">{action.title}</h3>
-                    <p className="text-sm text-muted-foreground">{action.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-sm sm:text-base">{action.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{action.description}</p>
                   </div>
                 </div>
               </div>
               <Button 
-                className="w-full mt-4" 
+                className="w-full mt-3 sm:mt-4 text-xs sm:text-sm h-8 sm:h-9" 
                 onClick={action.onClick}
                 variant="outline"
               >
@@ -72,32 +72,28 @@ export default function QuickActions({ onNewInvoice, onAddClient, onLogExpense }
           </Card>
         ))}
         
-        <Card className="border border-border">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+        <Card className="border border-border hover:shadow-lg transition-shadow duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Bot className="w-5 h-5 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-medium">AI Assistant</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-sm sm:text-base">AI Assistant</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Get instant financial insights and advice
                   </p>
                 </div>
               </div>
             </div>
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Bot className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">Sample Question:</span>
-              </div>
-              <p className="text-sm text-muted-foreground italic">
-                "Who are my top 3 clients this month?"
-              </p>
-            </div>
-            <Button className="w-full mt-4" onClick={() => setAiChatOpen(true)}>
-              Open AI Chat
+            <Button 
+              className="w-full mt-3 sm:mt-4 text-xs sm:text-sm h-8 sm:h-9" 
+              onClick={() => setAiChatOpen(true)}
+              variant="outline"
+            >
+              <Bot className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              Open Assistant
             </Button>
           </CardContent>
         </Card>

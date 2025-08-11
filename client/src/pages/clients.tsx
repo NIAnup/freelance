@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Sidebar from "@/components/layout/sidebar";
-import Header from "@/components/layout/header";
+import { Navigation } from "@/components/layout/navigation";
 import ClientModal from "@/components/modals/client-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,96 +66,79 @@ export default function Clients() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-background">
-        <div className="w-64 border-r border-border">
-          <Skeleton className="h-full w-full" />
-        </div>
-        <div className="flex-1 flex flex-col">
-          <div className="h-16 border-b border-border p-4">
-            <Skeleton className="h-8 w-48" />
-          </div>
-          <div className="flex-1 p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Navigation>
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-6 sm:mb-8">
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 w-full" />
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </Navigation>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} hidden lg:block transition-all duration-300`}>
-        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      </div>
-
-      {/* Mobile sidebar */}
-      {mobileMenuOpen && (
-        <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed left-0 top-0 h-full w-64 z-30 lg:hidden">
-            <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
+    <Navigation>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Clients</h1>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">Manage your client relationships and track project history</p>
           </div>
-        </>
-      )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          title="Clients" 
-          description="Manage your client relationships and track project history."
-          onMobileMenuToggle={() => setMobileMenuOpen(true)}
-        />
-        
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {/* Actions Bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search clients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 w-full"
               />
             </div>
             <Button 
               onClick={() => setClientModalOpen(true)}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto flex items-center justify-center gap-2"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               Add Client
             </Button>
           </div>
 
           {/* Clients Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredClients.map((client) => (
-              <Card key={client.id} className="hover:shadow-md transition-shadow">
+              <Card key={client.id} className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-12 w-12">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                         <AvatarFallback className="bg-primary/10 text-primary">
                           {getInitials(client.companyName)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <CardTitle className="text-lg">{client.companyName}</CardTitle>
-                        <Badge variant="secondary" className={getStatusColor(client.status)}>
-                          {client.status}
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-sm sm:text-lg truncate">{client.companyName}</CardTitle>
+                        <Badge variant="secondary" className={`text-xs ${getStatusColor(client.status || 'active')} mt-1`}>
+                          {client.status || 'active'}
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-1 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditClient(client)}
+                        className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -165,6 +147,7 @@ export default function Clients() {
                         size="sm"
                         onClick={() => handleDeleteClient(client)}
                         disabled={deleteMutation.isPending}
+                        className="h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -224,7 +207,7 @@ export default function Clients() {
           </div>
 
           {filteredClients.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center py-12 col-span-full">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -240,7 +223,7 @@ export default function Clients() {
               )}
             </div>
           )}
-        </main>
+        </div>
       </div>
 
       {/* Client Modal */}
@@ -249,6 +232,6 @@ export default function Clients() {
         onOpenChange={handleModalClose}
         client={selectedClient || undefined}
       />
-    </div>
+    </Navigation>
   );
 }
