@@ -133,7 +133,7 @@ export function Navigation({ children }: NavigationProps) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatar} />
                       <AvatarFallback>
-                        {user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
+                        {user?.name?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
@@ -193,7 +193,7 @@ export function Navigation({ children }: NavigationProps) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatar} />
                       <AvatarFallback>
-                        {user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
+                        {user?.name?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
