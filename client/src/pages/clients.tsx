@@ -3,20 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/layout/navigation";
 import ClientModal from "@/components/modals/client-modal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Edit, Trash2, Mail, Phone } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Search, Edit, Trash2, Mail, Phone, MoreHorizontal, Users, Building } from "lucide-react";
 import { formatCurrency, formatDate, getInitials, getStatusColor } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ClientWithStats } from "@shared/schema";
 
 export default function Clients() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientWithStats | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +72,7 @@ export default function Clients() {
               <Skeleton className="h-8 w-48 mb-2" />
               <Skeleton className="h-4 w-64" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 w-full" />
               ))}
@@ -96,142 +95,192 @@ export default function Clients() {
 
           {/* Actions Bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search clients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
+                className="pl-10"
               />
             </div>
-            <Button 
-              onClick={() => setClientModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
+            <Button onClick={() => setClientModalOpen(true)} className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
               Add Client
             </Button>
           </div>
 
-          {/* Clients Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredClients.map((client) => (
-              <Card key={client.id} className="hover:shadow-lg transition-shadow duration-200">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {getInitials(client.companyName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="text-sm sm:text-lg truncate">{client.companyName}</CardTitle>
-                        <Badge variant="secondary" className={`text-xs ${getStatusColor(client.status || 'active')} mt-1`}>
-                          {client.status || 'active'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex space-x-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditClient(client)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClient(client)}
-                        disabled={deleteMutation.isPending}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {client.contactPerson && (
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <span className="font-medium">{client.contactPerson}</span>
-                      </div>
-                    )}
-                    
-                    {client.email && (
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4 mr-2" />
-                        <span>{client.email}</span>
-                      </div>
-                    )}
-                    
-                    {client.phone && (
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4 mr-2" />
-                        <span>{client.phone}</span>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total Revenue</p>
-                        <p className="font-semibold">{formatCurrency(client.totalRevenue)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Projects</p>
-                        <p className="font-semibold">{client.projectCount}</p>
-                      </div>
-                    </div>
-
-                    {client.lastInvoiceDate && (
-                      <div className="pt-2">
-                        <p className="text-xs text-muted-foreground">
-                          Last invoice: {formatDate(client.lastInvoiceDate)}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="pt-2">
-                      <p className="text-xs text-muted-foreground">
-                        Payment Terms: {client.paymentTerms}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{clients.length}</p>
+                    <p className="text-xs text-muted-foreground">Total Clients</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                    <Building className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{clients.filter(c => c.status === 'Active').length}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                    <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(clients.reduce((total, client) => total + client.totalRevenue, 0))}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Revenue</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
+                    <Building className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {clients.reduce((total, client) => total + client.projectCount, 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Projects</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {filteredClients.length === 0 && (
-            <div className="text-center py-12 col-span-full">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No clients found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm ? "Try adjusting your search terms." : "Get started by adding your first client."}
-              </p>
-              {!searchTerm && (
-                <Button onClick={() => setClientModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Client
-                </Button>
-              )}
+          {/* Clients Grid */}
+          {filteredClients.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No clients found</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  {searchTerm ? "No clients match your search criteria." : "Get started by adding your first client."}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={() => setClientModalOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Client
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredClients.map((client) => (
+                <Card key={client.id} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                            {getInitials(client.companyName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-foreground truncate">
+                            {client.companyName}
+                          </h3>
+                          {client.contactPerson && (
+                            <p className="text-sm text-muted-foreground truncate">{client.contactPerson}</p>
+                          )}
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-xs mt-1 ${getStatusColor(client.status || 'Active')}`}
+                          >
+                            {client.status || 'Active'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClient(client)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="space-y-3">
+                      {client.email && (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground truncate">{client.email}</span>
+                        </div>
+                      )}
+                      {client.phone && (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground">{client.phone}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-3 border-t border-border">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Revenue</p>
+                            <p className="font-semibold text-foreground">
+                              {formatCurrency(client.totalRevenue)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Projects</p>
+                            <p className="font-semibold text-foreground">
+                              {client.projectCount}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
+
+          <ClientModal
+            open={clientModalOpen}
+            onClose={handleModalClose}
+            client={selectedClient || undefined}
+          />
         </div>
       </div>
-
-      {/* Client Modal */}
-      <ClientModal 
-        open={clientModalOpen} 
-        onOpenChange={handleModalClose}
-        client={selectedClient || undefined}
-      />
     </Navigation>
   );
 }
